@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galaxia de Frases</title>
+<style>
+  :root {
+    --bg-deep: #04030a;
+    --bg-mid: #0b0620;
+    --accent: #a78bfa;
+    --accent-2: #60a5fa;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg-deep);
+    font-family: 'Segoe UI', Verdana, sans-serif;
+    color: #eee;
+  }
+
+  #galaxyCanvas {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    display: block;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  #galaxyCanvas.dragging { cursor: grabbing; }
+
+  /* ---------- PANTALLA DE BIENVENIDA ---------- */
+  #welcome {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 20;
+    transition: opacity 1.2s ease, visibility 1.2s ease;
+    background: radial-gradient(ellipse at 50% 30%, var(--bg-mid), var(--bg-deep) 70%);
+  }
+
+  #welcome.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  #welcome h1 {
+    font-size: clamp(1.8rem, 6vw, 3.2rem);
+    font-weight: 300;
+    letter-spacing: 3px;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(90deg, #fff, var(--accent), var(--accent-2), #fff);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 6s linear infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
+  }
+
+  #welcome p {
+    color: #aaa;
+    font-size: 1rem;
+    margin-bottom: 2.5rem;
+    letter-spacing: 1px;
+  }
+
+  #enterBtn {
+    padding: 14px 38px;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #fff;
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: 40px;
+    cursor: pointer;
+    transition: all 0.35s ease;
+    box-shadow: 0 0 15px rgba(167, 139, 250, 0.3);
+  }
+
+  #enterBtn:hover {
+    background: var(--accent);
+    color: #0b0620;
+    box-shadow: 0 0 30px rgba(167, 139, 250, 0.8);
+    transform: scale(1.05);
+  }
+
+  /* ---------- TARJETA DE FRASE ---------- */
+  #overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 25;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.35s ease, visibility 0.35s;
+  }
+
+  #overlay.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  #phraseCard {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.85);
+    max-width: 480px;
+    width: 85%;
+    padding: 34px 30px;
+    background: rgba(15, 10, 35, 0.9);
+    border: 1px solid rgba(167, 139, 250, 0.4);
+    border-radius: 16px;
+    text-align: center;
+    z-index: 30;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 0 40px rgba(167, 139, 250, 0.25);
+  }
+
+  #phraseCard.show {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  #phraseCard p {
+    font-size: 1.15rem;
+    line-height: 1.6;
+    font-style: italic;
+    color: #f0f0ff;
+    margin: 0 0 20px 0;
+  }
+
+  #closeCard {
+    background: transparent;
+    border: 1px solid var(--accent-2);
+    color: #cdd;
+    padding: 8px 22px;
+    border-radius: 30px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.3s;
+  }
+
+  #closeCard:hover {
+    background: var(--accent-2);
+    color: #04030a;
+  }
+
+  #hint {
+    position: fixed;
+    bottom: 24px;
+    width: 100%;
+    text-align: center;
+    color: rgba(255,255,255,0.35);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    z-index: 5;
+    animation: fadeInOut 4s ease-in-out infinite;
+    pointer-events: none;
+    display: none;
+  }
+
+  @keyframes fadeInOut {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 0.6; }
+  }
+
+  #muteBtn {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 10;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid rgba(167, 139, 250, 0.4);
+    background: rgba(15, 10, 35, 0.55);
+    color: #eee;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    transition: all 0.25s ease;
+  }
+
+  #muteBtn:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 14px rgba(167, 139, 250, 0.5);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="galaxyCanvas"></canvas>
+<audio id="bgMusic" preload="auto"></audio>
+
+<div id="welcome">
+  <h1>Bienvenido a la Galaxia</h1>
+  <p>Cada estrella guarda un mensaje</p>
+  <button id="enterBtn">Entrar</button>
+</div>
+
+<p id="hint">Arrastra para rotar &middot; Rueda / pellizca para zoom &middot; Toca una estrella ✦</p>
+<button id="muteBtn" title="Silenciar / activar sonido">🔊</button>
+
+<div id="overlay"></div>
+<div id="phraseCard">
+  <p id="phraseText"></p>
+  <button id="closeCard">Cerrar</button>
+</div>
+
+<script>
+/* ================= FRASES =================
+   Cambia, agrega o quita frases libremente.
+   Cada frase = una estrella interactiva.        */
+const phrases = [
+  "El universo no está afuera de ti. Mira dentro de ti mismo; todo lo que quieres, ya lo eres.",
+  "Somos polvo de estrellas contemplando las estrellas.",
+  "No tengas miedo de brillar; el cielo es lo bastante grande para todos.",
+  "Cada final es solo el comienzo de otra órbita.",
+  "La oscuridad existe para que la luz tenga sentido.",
+  "Sueña en grande: hay más de cien mil millones de estrellas para inspirarte.",
+  "A veces hay que perderse para encontrar una nueva constelación.",
+  "Tu potencial es infinito, como el espacio que te rodea.",
+  "Las estrellas más brillantes también atravesaron su propia oscuridad.",
+  "No busques la perfección, busca tu propia luz.",
+  "El viaje de mil años luz comienza con un solo paso.",
+  "Incluso las estrellas necesitan la noche para ser vistas.",
+  "Eres capaz de crear mundos enteros con tus ideas.",
+  "La distancia entre soñar y lograr se mide en constancia, no en tiempo.",
+  "Cada caída es solo gravedad enseñándote a volar mejor.",
+  "En medio del caos cósmico, tú eres el centro de tu propio sistema.",
+  "Las mejores historias se escriben bajo cielos estrellados.",
+  "No compitas con otras estrellas, brilla con tu propia luz.",
+  "El silencio del espacio esconde el ruido de mil posibilidades.",
+  "Todo lo que necesitas ya está dentro de ti, esperando encenderse."
+];
+
+/* ================= CANVAS / ESTADO ================= */
+const canvas = document.getElementById('galaxyCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, CX, CY;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  CX = W / 2;
+  CY = H / 2;
+}
+window.addEventListener('resize', resize);
+resize();
+
+const FOV = 520;
+const VIEWER_Z = 640;
+
+/* Rotación de la escena */
+let angleX = 0.25;   // leve inclinación inicial
+let angleY = 0;
+let autoSpin = true;
+let velY = 0.0016;   // velocidad de auto-rotación
+
+/* Zoom */
+let zoom = 1;
+const ZOOM_MIN = 0.4;
+const ZOOM_MAX = 2.8;
+
+/* Arrastre (mouse / touch vía Pointer Events) — soporta 1 dedo = rotar, 2 dedos = zoom (pellizcar) */
+let dragging = false;
+let lastPX = 0, lastPY = 0;
+let downX = 0, downY = 0;
+const activePointers = new Map();
+let pinchStartDist = 0;
+let pinchStartZoom = 1;
+
+function pointerDist() {
+  const pts = Array.from(activePointers.values());
+  return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  canvas.setPointerCapture(e.pointerId);
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  downX = e.clientX;
+  downY = e.clientY;
+
+  if (activePointers.size === 1) {
+    dragging = true;
+    autoSpin = false;
+    canvas.classList.add('dragging');
+    lastPX = e.clientX;
+    lastPY = e.clientY;
+  } else if (activePointers.size === 2) {
+    dragging = false;
+    pinchStartDist = pointerDist();
+    pinchStartZoom = zoom;
+  }
+});
+
+canvas.addEventListener('pointermove', (e) => {
+  if (!activePointers.has(e.pointerId)) return;
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (activePointers.size >= 2) {
+    const dist = pointerDist();
+    if (pinchStartDist > 0) {
+      zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, pinchStartZoom * (dist / pinchStartDist)));
+    }
+    return;
+  }
+
+  if (!dragging) return;
+  const dx = e.clientX - lastPX;
+  const dy = e.clientY - lastPY;
+  lastPX = e.clientX;
+  lastPY = e.clientY;
+  angleY += dx * 0.005;
+  angleX += dy * 0.005;
+  angleX = Math.max(-1.3, Math.min(1.3, angleX));
+});
+
+function endDrag(e) {
+  if (e && activePointers.has(e.pointerId)) activePointers.delete(e.pointerId);
+
+  if (activePointers.size === 1) {
+    const remaining = Array.from(activePointers.values())[0];
+    lastPX = remaining.x;
+    lastPY = remaining.y;
+    dragging = true;
+    autoSpin = false;
+    return;
+  }
+
+  dragging = false;
+  canvas.classList.remove('dragging');
+  if (activePointers.size === 0) {
+    setTimeout(() => { autoSpin = true; }, 1200);
+  }
+}
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+canvas.addEventListener('pointerleave', endDrag);
+
+canvas.addEventListener('pointerup', (e) => {
+  const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
+  if (moved < 6 && activePointers.size === 0) handleClick(e.clientX, e.clientY);
+});
+
+/* Zoom con rueda del mouse (desktop) */
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const factor = Math.exp(-e.deltaY * 0.0012);
+  zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom * factor));
+}, { passive: false });
+
+/* ================= UTILIDADES 3D ================= */
+function rand(min, max) { return Math.random() * (max - min) + min; }
+
+function rotatePoint(p) {
+  let x = p.x * Math.cos(angleY) - p.z * Math.sin(angleY);
+  let z = p.x * Math.sin(angleY) + p.z * Math.cos(angleY);
+  let y = p.y;
+  let y2 = y * Math.cos(angleX) - z * Math.sin(angleX);
+  let z2 = y * Math.sin(angleX) + z * Math.cos(angleX);
+  return { x: x, y: y2, z: z2 };
+}
+
+function project(p) {
+  const zEff = p.z + VIEWER_Z;
+  const scale = (FOV / Math.max(zEff, 1)) * zoom;
+  return { x: CX + p.x * scale, y: CY + p.y * scale, scale: scale };
+}
+
+/* ================= GENERACIÓN DE PUNTOS ================= */
+
+/* Estrellas de fondo (decorativas, esfera grande) */
+const bgStars = [];
+for (let i = 0; i < 500; i++) {
+  const r = rand(260, 620);
+  const theta = rand(0, Math.PI * 2);
+  const phi = Math.acos(rand(-1, 1));
+  bgStars.push({
+    x: r * Math.sin(phi) * Math.cos(theta),
+    y: r * Math.sin(phi) * Math.sin(theta),
+    z: r * Math.cos(phi),
+    baseR: rand(0.4, 1.6),
+    phase: rand(0, Math.PI * 2),
+    speed: rand(0.8, 2.2)
+  });
+}
+
+/* Estrellas interactivas (una por frase), esfera media, evitando el agujero negro */
+const interactiveStars = [];
+{
+  const n = phrases.length;
+  for (let i = 0; i < n; i++) {
+    const y = 1 - (i / (n - 1)) * 2;
+    const radiusAtY = Math.sqrt(1 - y * y);
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+    const theta = goldenAngle * i;
+    const R = rand(150, 300);
+    const x = Math.cos(theta) * radiusAtY * R;
+    const z = Math.sin(theta) * radiusAtY * R;
+    interactiveStars.push({
+      x: x, y: y * R * 0.6, z: z,
+      baseR: rand(2.6, 4.2),
+      phase: rand(0, Math.PI * 2),
+      speed: rand(1, 1.8),
+      phrase: phrases[i],
+      screenX: 0, screenY: 0, screenR: 0
+    });
+  }
+}
+
+/* Disco de acreción del agujero negro: puntos en un anillo plano, inclinado */
+const diskParticles = [];
+{
+  const ringCount = 5;
+  for (let ring = 0; ring < ringCount; ring++) {
+    const rBase = 55 + ring * 16;
+    const count = 70 + ring * 10;
+    for (let i = 0; i < count; i++) {
+      const theta = rand(0, Math.PI * 2);
+      const r = rBase + rand(-4, 4);
+      diskParticles.push({
+        theta: theta,
+        r: r,
+        y0: rand(-2, 2),
+        speed: rand(0.15, 0.35) * (ring % 2 === 0 ? 1 : -1) * 0.4,
+        size: rand(0.8, 2.2),
+        colorT: ring / (ringCount - 1)
+      });
+    }
+  }
+}
+
+function ringColor(t) {
+  const stops = [
+    [255, 255, 255],
+    [255, 230, 170],
+    [255, 180, 90],
+    [255, 120, 60],
+    [200, 70, 90]
+  ];
+  const idx = Math.min(stops.length - 2, Math.floor(t * (stops.length - 1)));
+  const localT = t * (stops.length - 1) - idx;
+  const c1 = stops[idx], c2 = stops[idx + 1];
+  const r = c1[0] + (c2[0] - c1[0]) * localT;
+  const g = c1[1] + (c2[1] - c1[1]) * localT;
+  const b = c1[2] + (c2[2] - c1[2]) * localT;
+  return `${r|0},${g|0},${b|0}`;
+}
+
+/* ================= RENDER LOOP ================= */
+let t0 = performance.now();
+
+function drawBlackHole() {
+  const center = project({ x: 0, y: 0, z: 0 });
+  const baseScale = center.scale;
+
+  const haloR = 70 * baseScale;
+  const grad = ctx.createRadialGradient(center.x, center.y, 10, center.x, center.y, haloR);
+  grad.addColorStop(0, 'rgba(255,220,180,0.35)');
+  grad.addColorStop(0.4, 'rgba(255,150,80,0.12)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(center.x, center.y, haloR, 0, Math.PI * 2);
+  ctx.fill();
+
+  const eventR = 34 * baseScale;
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(center.x, center.y, eventR, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(255,240,220,0.85)';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.arc(center.x, center.y, eventR + 1.5, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function frame(now) {
+  const dt = Math.min(50, now - t0);
+  t0 = now;
+
+  // en vez de borrar todo, pintamos una capa semitransparente:
+  // así lo que se mueve (rotación / zoom) deja una breve estela que se desvanece
+  ctx.fillStyle = 'rgba(4, 3, 10, 0.28)';
+  ctx.fillRect(0, 0, W, H);
+
+  if (autoSpin) {
+    angleY += velY * (dt / 16.6);
+  }
+
+  const time = now / 1000;
+  const drawList = [];
+
+  for (const s of bgStars) {
+    const rp = rotatePoint(s);
+    const pr = project(rp);
+    if (pr.x < -50 || pr.x > W + 50 || pr.y < -50 || pr.y > H + 50) continue;
+    const twinkle = 0.35 + 0.35 * Math.sin(time * s.speed + s.phase);
+    drawList.push({ z: rp.z, type: 'bg', x: pr.x, y: pr.y, r: Math.max(0.3, s.baseR * pr.scale * 0.35), alpha: twinkle });
+  }
+
+  for (const d of diskParticles) {
+    const theta = d.theta + time * d.speed;
+    const localX = Math.cos(theta) * d.r;
+    const localZraw = Math.sin(theta) * d.r;
+    const tilt = 1.1;
+    const ly = localZraw * Math.sin(tilt) * 0.15 + d.y0 * Math.cos(tilt);
+    const lz = localZraw * Math.cos(tilt);
+    const rp = rotatePoint({ x: localX, y: ly, z: lz });
+    const pr = project(rp);
+    drawList.push({ z: rp.z, type: 'ring', x: pr.x, y: pr.y, r: Math.max(0.5, d.size * pr.scale * 0.55), color: ringColor(d.colorT) });
+  }
+
+  for (const s of interactiveStars) {
+    const rp = rotatePoint(s);
+    const pr = project(rp);
+    const twinkle = 0.75 + 0.25 * Math.sin(time * s.speed + s.phase);
+    const screenR = Math.max(1.4, s.baseR * pr.scale * 0.45);
+    s.screenX = pr.x;
+    s.screenY = pr.y;
+    s.screenR = screenR + 6;
+    drawList.push({ z: rp.z, type: 'star', x: pr.x, y: pr.y, r: screenR, alpha: twinkle });
+  }
+
+  drawList.sort((a, b) => b.z - a.z);
+
+  for (const item of drawList) {
+    if (item.type === 'bg') {
+      ctx.globalAlpha = item.alpha;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(item.x, item.y, item.r, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (item.type === 'ring') {
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = `rgb(${item.color})`;
+      ctx.shadowColor = `rgb(${item.color})`;
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.arc(item.x, item.y, item.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    } else if (item.type === 'star') {
+      ctx.globalAlpha = item.alpha;
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = 'rgba(255,255,255,0.9)';
+      ctx.shadowBlur = item.r * 3;
+      ctx.beginPath();
+      ctx.arc(item.x, item.y, item.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  drawBlackHole();
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ================= CLICK EN ESTRELLAS ================= */
+function handleClick(clientX, clientY) {
+  let closest = null;
+  let closestDist = Infinity;
+  for (const s of interactiveStars) {
+    const d = Math.hypot(clientX - s.screenX, clientY - s.screenY);
+    if (d < s.screenR && d < closestDist) {
+      closestDist = d;
+      closest = s;
+    }
+  }
+  if (closest) showPhrase(closest.phrase);
+}
+
+/* ================= AUDIO ================= */
+let audioCtx = null;
+let masterGain = null;
+let muted = false;
+const muteBtn = document.getElementById('muteBtn');
+const bgMusic = document.getElementById('bgMusic');
+
+/* Tus dos pistas — se alternan en loop con transición de volumen */
+const playlist = ['track1.mp3', 'track2.mp3'];
+let trackIndex = 0;
+const MAX_VOL = 0.55;
+const FADE_OUT_TIME = 3;   // segundos antes del final en que empieza a bajar
+const FADE_IN_TIME = 3.5; // segundos que tarda en subir la siguiente pista
+let fadingOut = false;
+let fadeTimer = null;
+
+function fadeVolume(target, duration, onDone) {
+  clearInterval(fadeTimer);
+  const steps = 30;
+  const stepTime = (duration * 1000) / steps;
+  const startVol = bgMusic.volume;
+  const diff = target - startVol;
+  let i = 0;
+  fadeTimer = setInterval(() => {
+    i++;
+    bgMusic.volume = Math.max(0, Math.min(1, startVol + diff * (i / steps)));
+    if (i >= steps) {
+      clearInterval(fadeTimer);
+      if (onDone) onDone();
+    }
+  }, stepTime);
+}
+
+function playTrack(index, withFadeIn) {
+  bgMusic.src = playlist[index];
+  bgMusic.currentTime = 0;
+  bgMusic.volume = 0;
+  bgMusic.play().catch(() => {});
+  fadingOut = false;
+  if (withFadeIn) fadeVolume(MAX_VOL, FADE_IN_TIME);
+  else bgMusic.volume = MAX_VOL;
+}
+
+bgMusic.addEventListener('timeupdate', () => {
+  if (!fadingOut && bgMusic.duration && (bgMusic.duration - bgMusic.currentTime) <= FADE_OUT_TIME) {
+    fadingOut = true;
+    fadeVolume(0, FADE_OUT_TIME);
+  }
+});
+
+bgMusic.addEventListener('ended', () => {
+  trackIndex = (trackIndex + 1) % playlist.length;
+  playTrack(trackIndex, true);
+});
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  // ganancia solo para el chime de las estrellas (independiente del <audio>)
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.6;
+  masterGain.connect(audioCtx.destination);
+
+  playTrack(trackIndex, true);
+  muteBtn.style.display = 'flex';
+}
+
+function toggleMute() {
+  if (!audioCtx) return;
+  muted = !muted;
+  bgMusic.muted = muted;
+  masterGain.gain.linearRampToValueAtTime(muted ? 0 : 0.6, audioCtx.currentTime + 0.4);
+  muteBtn.textContent = muted ? '🔇' : '🔊';
+}
+muteBtn.addEventListener('click', toggleMute);
+
+/* Pequeño "chime" al tocar una estrella */
+function playChime() {
+  if (!audioCtx || muted) return;
+  const now = audioCtx.currentTime;
+  const notes = [523.25, 659.25, 783.99, 987.77]; // Do, Mi, Sol, Si (agradables entre sí)
+  const freq = notes[Math.floor(Math.random() * notes.length)];
+
+  const osc = audioCtx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+
+  const g = audioCtx.createGain();
+  g.gain.value = 0;
+  osc.connect(g);
+  g.connect(masterGain);
+
+  osc.start(now);
+  g.gain.linearRampToValueAtTime(0.22, now + 0.04);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 1.3);
+  osc.stop(now + 1.4);
+}
+
+/* ================= UI: BIENVENIDA Y TARJETA ================= */
+const welcome = document.getElementById('welcome');
+const enterBtn = document.getElementById('enterBtn');
+const overlay = document.getElementById('overlay');
+const phraseCard = document.getElementById('phraseCard');
+const phraseText = document.getElementById('phraseText');
+const closeCard = document.getElementById('closeCard');
+const hint = document.getElementById('hint');
+
+function showPhrase(text) {
+  phraseText.textContent = text;
+  phraseCard.classList.add('show');
+  overlay.classList.add('show');
+  playChime();
+}
+function hidePhrase() {
+  phraseCard.classList.remove('show');
+  overlay.classList.remove('show');
+}
+closeCard.addEventListener('click', hidePhrase);
+overlay.addEventListener('click', hidePhrase);
+
+enterBtn.addEventListener('click', () => {
+  initAudio(); // el audio solo puede iniciar tras un gesto del usuario (click)
+  welcome.classList.add('hidden');
+  setTimeout(() => { hint.style.display = 'block'; }, 1000);
+});
+</script>
+
+</body>
+</html>
