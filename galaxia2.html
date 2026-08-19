@@ -221,7 +221,7 @@
 <audio id="bgMusic" preload="auto"></audio>
 
 <div id="welcome">
-  <h1>💗Stars of Thought💗</h1>
+  <h1>Bienvenido a la Galaxia</h1>
   <p>Cada estrella guarda un mensaje</p>
   <button id="enterBtn">Entrar</button>
 </div>
@@ -240,26 +240,25 @@
    Cambia, agrega o quita frases libremente.
    Cada frase = una estrella interactiva.        */
 const phrases = [
-  "El universo no está afuera de ti. Mira dentro de ti mismo, todo lo que quieres, ya lo eres.",
-  "Mi sentimientos hacia ti son sinceros y profundos.",
-  "Si quieres decirme algo, siempre estoy aquí para escucharte.",
-  "Te respeto y valoro tu autenticidad, incluso en la oscuridad.",
-  "Me encanta escucharte aunque no siempre quieras hablar.",
+  "El universo no está afuera de ti. Mira dentro de ti mismo; todo lo que quieres, ya lo eres.",
+  "Somos polvo de estrellas contemplando las estrellas.",
+  "No tengas miedo de brillar; el cielo es lo bastante grande para todos.",
+  "Cada final es solo el comienzo de otra órbita.",
   "La oscuridad existe para que la luz tenga sentido.",
-  "Eres perfecta, para mí eres una mujer única.",
-  "A veces hay que perderse para encontrar un nuevo camino.",
-  "Te respeto y admiro por ser quien eres, incluso cuando el mundo no lo hace.",
-  "Te amo mucho muchote y muchísimo 💖",
-  "No te quiero, te amo.",
+  "Sueña en grande: hay más de cien mil millones de estrellas para inspirarte.",
+  "A veces hay que perderse para encontrar una nueva constelación.",
+  "Tu potencial es infinito, como el espacio que te rodea.",
   "Las estrellas más brillantes también atravesaron su propia oscuridad.",
-  "Habla conmigo aun que pienses que no tengo tiempo, siempre te escucho.",
-  "Perdón por los tantos errores que cometo, me preocupa hacer las cosas bien contigo.",
-  "Te acompañare 1200 meses y más si me lo permites.",
-  "Nada de lo que dices es aburrido, cada palabra tuya es un universo.",
-  "Entenderte y aprender a amarte a sido el mejor rompecabezas.",
+  "No busques la perfección, busca tu propia luz.",
+  "El viaje de mil años luz comienza con un solo paso.",
+  "Incluso las estrellas necesitan la noche para ser vistas.",
+  "Eres capaz de crear mundos enteros con tus ideas.",
+  "La distancia entre soñar y lograr se mide en constancia, no en tiempo.",
   "Cada caída es solo gravedad enseñándote a volar mejor.",
+  "En medio del caos cósmico, tú eres el centro de tu propio sistema.",
   "Las mejores historias se escriben bajo cielos estrellados.",
-  "No dejes que nadie te apague, vive y sé tu, tu propio mundo.",
+  "No compitas con otras estrellas, brilla con tu propia luz.",
+  "El silencio del espacio esconde el ruido de mil posibilidades.",
   "Todo lo que necesitas ya está dentro de ti, esperando encenderse."
 ];
 
@@ -268,9 +267,15 @@ const canvas = document.getElementById('galaxyCanvas');
 const ctx = canvas.getContext('2d');
 let W, H, CX, CY;
 
+/* Detecta teléfonos/tablets para reducir la carga gráfica automáticamente */
+const isMobile = matchMedia('(pointer: coarse)').matches || window.innerWidth < 820;
+const RENDER_SCALE = isMobile ? 0.72 : 1; // renderiza a menor resolución interna y la estira con CSS (más rápido)
+
 function resize() {
-  W = canvas.width = window.innerWidth;
-  H = canvas.height = window.innerHeight;
+  W = canvas.width = Math.round(window.innerWidth * RENDER_SCALE);
+  H = canvas.height = Math.round(window.innerHeight * RENDER_SCALE);
+  canvas.style.width = window.innerWidth + 'px';
+  canvas.style.height = window.innerHeight + 'px';
   CX = W / 2;
   CY = H / 2;
 }
@@ -401,7 +406,8 @@ function project(p) {
 
 /* Estrellas de fondo (decorativas, esfera grande) */
 const bgStars = [];
-for (let i = 0; i < 500; i++) {
+const BG_STAR_COUNT = isMobile ? 180 : 500;
+for (let i = 0; i < BG_STAR_COUNT; i++) {
   const r = rand(260, 620);
   const theta = rand(0, Math.PI * 2);
   const phi = Math.acos(rand(-1, 1));
@@ -444,7 +450,7 @@ const diskParticles = [];
   const ringCount = 5;
   for (let ring = 0; ring < ringCount; ring++) {
     const rBase = 55 + ring * 16;
-    const count = 70 + ring * 10;
+    const count = isMobile ? (28 + ring * 4) : (70 + ring * 10);
     for (let i = 0; i < count; i++) {
       const theta = rand(0, Math.PI * 2);
       const r = rBase + rand(-4, 4);
@@ -550,7 +556,7 @@ function frame(now) {
     const screenR = Math.max(1.4, s.baseR * pr.scale * 0.45);
     s.screenX = pr.x;
     s.screenY = pr.y;
-    s.screenR = screenR + 6;
+    s.screenR = screenR + (isMobile ? 12 : 6);
     drawList.push({ z: rp.z, type: 'star', x: pr.x, y: pr.y, r: screenR, alpha: twinkle });
   }
 
@@ -566,21 +572,35 @@ function frame(now) {
     } else if (item.type === 'ring') {
       ctx.globalAlpha = 0.9;
       ctx.fillStyle = `rgb(${item.color})`;
-      ctx.shadowColor = `rgb(${item.color})`;
-      ctx.shadowBlur = 6;
+      if (!isMobile) {
+        ctx.shadowColor = `rgb(${item.color})`;
+        ctx.shadowBlur = 6;
+      }
       ctx.beginPath();
       ctx.arc(item.x, item.y, item.r, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowBlur = 0;
+      if (!isMobile) ctx.shadowBlur = 0;
     } else if (item.type === 'star') {
       ctx.globalAlpha = item.alpha;
       ctx.fillStyle = '#ffffff';
-      ctx.shadowColor = 'rgba(255,255,255,0.9)';
-      ctx.shadowBlur = item.r * 3;
-      ctx.beginPath();
-      ctx.arc(item.x, item.y, item.r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
+      if (isMobile) {
+        // en móvil dibujamos un halo simple con un segundo círculo en vez de shadowBlur (mucho más barato)
+        ctx.globalAlpha = item.alpha * 0.35;
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, item.r * 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = item.alpha;
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, item.r, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.shadowColor = 'rgba(255,255,255,0.9)';
+        ctx.shadowBlur = item.r * 3;
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, item.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
     }
   }
   ctx.globalAlpha = 1;
@@ -593,10 +613,14 @@ requestAnimationFrame(frame);
 
 /* ================= CLICK EN ESTRELLAS ================= */
 function handleClick(clientX, clientY) {
+  // convertimos coordenadas de pantalla (CSS px) a coordenadas internas del canvas,
+  // ya que en móvil el canvas se renderiza a menor resolución y luego se estira
+  const x = clientX * RENDER_SCALE;
+  const y = clientY * RENDER_SCALE;
   let closest = null;
   let closestDist = Infinity;
   for (const s of interactiveStars) {
-    const d = Math.hypot(clientX - s.screenX, clientY - s.screenY);
+    const d = Math.hypot(x - s.screenX, y - s.screenY);
     if (d < s.screenR && d < closestDist) {
       closestDist = d;
       closest = s;
