@@ -312,6 +312,7 @@
     opacity: 0;
     transition: opacity 1s ease;
     text-align: left;
+    max-width: 230px;
   }
 
   #loveCounter.show {
@@ -322,6 +323,31 @@
   #loveCounter b {
     color: var(--accent-2);
     font-weight: 600;
+  }
+
+  .beatHeart {
+    display: inline-block;
+    animation: heartbeat 1.15s ease-in-out infinite;
+    transform-origin: center;
+    filter: drop-shadow(0 0 4px rgba(255, 210, 122, 0.8));
+  }
+
+  @keyframes heartbeat {
+    0%, 100% { transform: scale(1); }
+    15% { transform: scale(1.28); }
+    30% { transform: scale(1); }
+    45% { transform: scale(1.16); }
+    60% { transform: scale(1); }
+  }
+
+  /* Línea de cumpleaños: deliberadamente chica, para no ocupar espacio */
+  #birthdayLine {
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px solid rgba(255, 210, 122, 0.2);
+    font-size: 0.68rem;
+    opacity: 0.85;
+    white-space: nowrap;
   }
 </style>
 </head>
@@ -339,7 +365,10 @@
 
 <p id="hint">Arrastra para rotar &middot; Rueda / pellizca para zoom &middot; Toca una estrella ✦</p>
 <button id="muteBtn" title="Silenciar / activar sonido">🔊</button>
-<div id="loveCounter"></div>
+<div id="loveCounter">
+  <div class="loveLine">Last chance <span class="beatHeart">💛</span> <span id="loveCounterText"></span></div>
+  <div id="birthdayLine"></div>
+</div>
 
 <div id="overlay"></div>
 <div id="phraseCard">
@@ -350,21 +379,26 @@
 
 <script>
 /* ================= PERSONALIZACIÓN =================
-   Cambia aquí el nombre y la fecha — es lo único que
+   Cambia aquí el nombre y las fechas — es lo único que
    necesitas tocar para adaptarlo.                     */
 const partnerName = "Milyluli";
 const welcomeSubtitleText = "Una galaxia hecha solo para ti";
 
-// Fecha en que empezaron (o cualquier fecha especial que quieras contar).
+// Fecha en que empezaron (aniversario) — se usa para el contador "Juntos hace...".
 // Formato: 'AAAA-MM-DDTHH:MM:SS'
 const START_DATE = new Date('2026-07-26T00:00:00');
 
-// Mensaje secreto oculto en el centro del agujero negro — cámbialo por lo que quieras decirle
+// Cumpleaños — se muestra como una cuenta regresiva compacta de solo días.
+// Se recalcula automáticamente para el próximo año si ya pasó este año.
+const BIRTHDAY_MONTH = 9;  // Septiembre
+const BIRTHDAY_DAY = 25;
+const BIRTHDAY_LABEL = "su cumpleaños"; // <-- cámbialo si quieres, ej. "el cumple de Mily"
+
+// Mensaje secreto oculto en el centro del agujero negro
 const SECRET_MESSAGE = "“Tú ves defectos donde yo veo detalles que te hacen única; porque el amor que siento por ti no mira lo que tú quisieras cambiar, mira a la persona que eres… y para mí, incluso con todo aquello que tú llamas imperfecciones, sigues siendo perfectamente tú.” ❤️";
 
 /* ================= FRASES =================
-   No se modificó ninguna palabra — solo se agregaron
-   las comas que faltaban entre elementos del array.    */
+   No se modificó ninguna palabra.                      */
 const phrases = [
   "Eres la unica novia que quiero.",
   "Te amo mucho muchote muchísimo.",
@@ -856,8 +890,10 @@ function handleClick(clientX, clientY) {
   if (dBH < bhTapRadius) showSecretMessage();
 }
 
-/* ================= CONTADOR DE TIEMPO JUNTOS ================= */
+/* ================= CONTADOR DE TIEMPO JUNTOS + CUMPLEAÑOS ================= */
 const loveCounterEl = document.getElementById('loveCounter');
+const loveCounterTextEl = document.getElementById('loveCounterText');
+const birthdayLineEl = document.getElementById('birthdayLine');
 function pad(n) { return String(n).padStart(2, '0'); }
 
 function updateLoveCounter() {
@@ -879,9 +915,29 @@ function updateLoveCounter() {
   }
   if (months < 0) { months += 12; years--; }
 
-  loveCounterEl.innerHTML =
-    `Last chance 💛💞 Juntos hace <b>${years}</b> años, <b>${months}</b> meses y <b>${days}</b> días<br>` +
+  loveCounterTextEl.innerHTML =
+    `Juntos hace <b>${years}</b> años, <b>${months}</b> meses y <b>${days}</b> días<br>` +
     `<b>${pad(hours)}:${pad(minutes)}:${pad(seconds)}</b>`;
+
+  updateBirthdayCountdown(now);
+}
+
+/* Próxima ocurrencia de una fecha (mes/día) a partir de "from" */
+function nextOccurrence(month, day, from) {
+  let d = new Date(from.getFullYear(), month - 1, day, 0, 0, 0);
+  if (d < from) d = new Date(from.getFullYear() + 1, month - 1, day, 0, 0, 0);
+  return d;
+}
+
+/* Cuenta regresiva de cumpleaños — solo días, para que sea compacta */
+function updateBirthdayCountdown(now) {
+  const next = nextOccurrence(BIRTHDAY_MONTH, BIRTHDAY_DAY, now);
+  const diffDays = Math.ceil((next - now) / 86400000);
+  if (diffDays <= 0) {
+    birthdayLineEl.innerHTML = `🎂 ¡Hoy es ${BIRTHDAY_LABEL}!`;
+  } else {
+    birthdayLineEl.innerHTML = `🎂 Faltan <b>${diffDays}</b> días para ${BIRTHDAY_LABEL}`;
+  }
 }
 
 /* ================= AUDIO ================= */
