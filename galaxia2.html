@@ -210,6 +210,11 @@
     transform: translate(-50%, -50%) scale(1);
   }
 
+  #phraseCard.secret {
+    border-color: rgba(255, 210, 122, 0.6);
+    box-shadow: 0 0 55px rgba(255, 210, 122, 0.35);
+  }
+
   #cardIcon {
     font-size: 1.3rem;
     margin-bottom: 10px;
@@ -352,7 +357,10 @@ const welcomeSubtitleText = "Una galaxia hecha solo para ti";
 
 // Fecha en que empezaron (o cualquier fecha especial que quieras contar).
 // Formato: 'AAAA-MM-DDTHH:MM:SS'
-const START_DATE = new Date('2026-07-26T00:00:00'); // <-- CAMBIA ESTA FECHA
+const START_DATE = new Date('2026-07-26T00:00:00');
+
+// Mensaje secreto oculto en el centro del agujero negro — cámbialo por lo que quieras decirle
+const SECRET_MESSAGE = "“Tú ves defectos donde yo veo detalles que te hacen única; porque el amor que siento por ti no mira lo que tú quisieras cambiar, mira a la persona que eres… y para mí, incluso con todo aquello que tú llamas imperfecciones, sigues siendo perfectamente tú.” ❤️";
 
 /* ================= FRASES =================
    No se modificó ninguna palabra — solo se agregaron
@@ -646,6 +654,22 @@ function ringColor(t) {
   return `${r|0},${g|0},${b|0}`;
 }
 
+/* Estrellas fugaces ocasionales */
+const shootingStars = [];
+function spawnShootingStar() {
+  const angle = rand(Math.PI * 0.15, Math.PI * 0.35);
+  const speed = rand(0.55, 0.85) * W;
+  shootingStars.push({
+    x: rand(0, W * 0.5),
+    y: rand(0, H * 0.35),
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    born: performance.now(),
+    maxLife: rand(0.7, 1.1),
+    len: rand(0.08, 0.16) * W
+  });
+}
+
 /* ================= RENDER LOOP ================= */
 let t0 = performance.now();
 
@@ -770,6 +794,39 @@ function frame(now) {
 
   drawBlackHole();
 
+  /* Estrellas fugaces: aparecen ocasionalmente y se dibujan encima de todo */
+  if (Math.random() < (isMobile ? 0.0012 : 0.0018)) spawnShootingStar();
+
+  for (let i = shootingStars.length - 1; i >= 0; i--) {
+    const s = shootingStars[i];
+    const age = (now - s.born) / 1000;
+    if (age > s.maxLife) { shootingStars.splice(i, 1); continue; }
+
+    const t = age / s.maxLife;
+    const alpha = t < 0.15 ? t / 0.15 : (t > 0.7 ? (1 - t) / 0.3 : 1);
+    const headX = s.x + s.vx * age;
+    const headY = s.y + s.vy * age;
+    const dirLen = Math.hypot(s.vx, s.vy) || 1;
+    const ux = s.vx / dirLen, uy = s.vy / dirLen;
+    const tailX = headX - ux * s.len;
+    const tailY = headY - uy * s.len;
+
+    const grad = ctx.createLinearGradient(tailX, tailY, headX, headY);
+    grad.addColorStop(0, 'rgba(255,255,255,0)');
+    grad.addColorStop(1, `rgba(255,240,230,${alpha})`);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = Math.max(1, W * 0.0018);
+    ctx.beginPath();
+    ctx.moveTo(tailX, tailY);
+    ctx.lineTo(headX, headY);
+    ctx.stroke();
+
+    ctx.fillStyle = `rgba(255,245,235,${alpha})`;
+    ctx.beginPath();
+    ctx.arc(headX, headY, Math.max(1.2, W * 0.0022), 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -789,7 +846,14 @@ function handleClick(clientX, clientY) {
       closest = s;
     }
   }
-  if (closest) showPhrase(closest.phrase);
+  if (closest) { showPhrase(closest.phrase); return; }
+
+  // el agujero negro siempre está en el centro exacto de la pantalla,
+  // sin importar la rotación o el zoom
+  const bhScale = (FOV / VIEWER_Z) * zoom;
+  const bhTapRadius = 34 * bhScale + 18;
+  const dBH = Math.hypot(x - CX, y - CY);
+  if (dBH < bhTapRadius) showSecretMessage();
 }
 
 /* ================= CONTADOR DE TIEMPO JUNTOS ================= */
@@ -816,7 +880,7 @@ function updateLoveCounter() {
   if (months < 0) { months += 12; years--; }
 
   loveCounterEl.innerHTML =
-    `Last Chance 💛💞 Juntos hace <b>${years}</b> años, <b>${months}</b> meses y <b>${days}</b> días<br>` +
+    `💞 Juntos hace <b>${years}</b> años, <b>${months}</b> meses y <b>${days}</b> días<br>` +
     `<b>${pad(hours)}:${pad(minutes)}:${pad(seconds)}</b>`;
 }
 
@@ -929,6 +993,16 @@ const hint = document.getElementById('hint');
 
 function showPhrase(text) {
   phraseText.textContent = text;
+  document.getElementById('cardIcon').textContent = '💗';
+  phraseCard.classList.remove('secret');
+  phraseCard.classList.add('show');
+  overlay.classList.add('show');
+  playChime();
+}
+function showSecretMessage() {
+  phraseText.textContent = SECRET_MESSAGE;
+  document.getElementById('cardIcon').textContent = '🕳️💌';
+  phraseCard.classList.add('secret');
   phraseCard.classList.add('show');
   overlay.classList.add('show');
   playChime();
