@@ -248,6 +248,118 @@
     color: #2a0f2f;
   }
 
+  /* ---------- JARDÍN SECRETO (lirio final) ---------- */
+  #gardenOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 2, 12, 0.72);
+    z-index: 35;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease, visibility 0.5s;
+  }
+
+  #gardenOverlay.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  #gardenCard {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.85);
+    max-width: 420px;
+    width: 88%;
+    padding: 26px 30px 30px;
+    background: linear-gradient(160deg, rgba(42, 15, 47, 0.95), rgba(15, 5, 18, 0.95));
+    border: 1px solid rgba(255, 210, 122, 0.55);
+    border-radius: 20px;
+    text-align: center;
+    z-index: 40;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.5s ease, transform 0.5s ease, visibility 0.5s;
+    box-shadow: 0 0 60px rgba(255, 210, 122, 0.35);
+  }
+
+  #gardenCard.show {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  #lilySvg {
+    width: 150px;
+    height: 150px;
+    display: block;
+    margin: 0 auto 12px;
+    overflow: visible;
+  }
+
+  #lilySvg .petal {
+    fill: url(#petalGradient);
+    stroke: rgba(255, 111, 165, 0.25);
+    stroke-width: 0.6;
+    transform-box: fill-box;
+    transform-origin: center bottom;
+    transform: scale(0);
+    opacity: 0;
+    animation: petalBloom 1.1s ease forwards;
+    animation-play-state: paused;
+  }
+
+  #gardenCard.show #lilySvg .petal {
+    animation-play-state: running;
+  }
+
+  #lilySvg .petalWrap:nth-of-type(1) .petal { animation-delay: 0.15s; }
+  #lilySvg .petalWrap:nth-of-type(2) .petal { animation-delay: 0.30s; }
+  #lilySvg .petalWrap:nth-of-type(3) .petal { animation-delay: 0.45s; }
+  #lilySvg .petalWrap:nth-of-type(4) .petal { animation-delay: 0.60s; }
+  #lilySvg .petalWrap:nth-of-type(5) .petal { animation-delay: 0.75s; }
+  #lilySvg .petalWrap:nth-of-type(6) .petal { animation-delay: 0.90s; }
+
+  @keyframes petalBloom {
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  #gardenTitle {
+    font-family: 'Dancing Script', cursive;
+    font-size: 1.9rem;
+    color: var(--accent-2);
+    margin: 0 0 10px 0;
+    text-shadow: 0 0 16px rgba(255, 210, 122, 0.5);
+  }
+
+  #gardenMessage {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: #fbeef4;
+    margin: 0 0 22px 0;
+  }
+
+  #closeGarden {
+    background: transparent;
+    border: 1px solid var(--accent-2);
+    color: #f2ddc7;
+    padding: 8px 24px;
+    border-radius: 30px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    font-family: 'Playfair Display', serif;
+    transition: all 0.3s;
+  }
+
+  #closeGarden:hover {
+    background: var(--accent-2);
+    color: #2a0f2f;
+  }
+
   #hint {
     position: fixed;
     bottom: 24px;
@@ -377,6 +489,35 @@
   <button id="closeCard">Cerrar</button>
 </div>
 
+<div id="gardenOverlay"></div>
+<div id="gardenCard">
+  <svg id="lilySvg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="petalGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#fffdf7"/>
+        <stop offset="100%" stop-color="#ff9fc7"/>
+      </linearGradient>
+    </defs>
+    <g transform="translate(100,120)">
+      <g id="lilyPetals">
+        <g class="petalWrap" transform="rotate(0)"><path class="petal" d="M0,0 Q -14,-45 0,-78 Q 14,-45 0,0 Z"/></g>
+        <g class="petalWrap" transform="rotate(60)"><path class="petal" d="M0,0 Q -14,-45 0,-78 Q 14,-45 0,0 Z"/></g>
+        <g class="petalWrap" transform="rotate(120)"><path class="petal" d="M0,0 Q -14,-45 0,-78 Q 14,-45 0,0 Z"/></g>
+        <g class="petalWrap" transform="rotate(180)"><path class="petal" d="M0,0 Q -14,-45 0,-78 Q 14,-45 0,0 Z"/></g>
+        <g class="petalWrap" transform="rotate(240)"><path class="petal" d="M0,0 Q -14,-45 0,-78 Q 14,-45 0,0 Z"/></g>
+        <g class="petalWrap" transform="rotate(300)"><path class="petal" d="M0,0 Q -14,-45 0,-78 Q 14,-45 0,0 Z"/></g>
+        <circle r="7" fill="#ffd27a"/>
+        <line x1="0" y1="0" x2="10" y2="-16" stroke="#c98b3c" stroke-width="1.4"/>
+        <line x1="0" y1="0" x2="-10" y2="-16" stroke="#c98b3c" stroke-width="1.4"/>
+        <line x1="0" y1="0" x2="0" y2="-20" stroke="#c98b3c" stroke-width="1.4"/>
+      </g>
+    </g>
+  </svg>
+  <p id="gardenTitle">Jardín secreto</p>
+  <p id="gardenMessage"></p>
+  <button id="closeGarden">Cerrar</button>
+</div>
+
 <script>
 /* ================= PERSONALIZACIÓN =================
    Cambia aquí el nombre y las fechas — es lo único que
@@ -396,6 +537,9 @@ const BIRTHDAY_LABEL = "su cumpleaños"; // <-- cámbialo si quieres, ej. "el cu
 
 // Mensaje secreto oculto en el centro del agujero negro
 const SECRET_MESSAGE = "“Tú ves defectos donde yo veo detalles que te hacen única; porque el amor que siento por ti no mira lo que tú quisieras cambiar, mira a la persona que eres… y para mí, incluso con todo aquello que tú llamas imperfecciones, sigues siendo perfectamente tú.” ❤️";
+
+// Mensaje final que aparece cuando toque las 18 estrellas (jardín secreto) — cámbialo si quieres
+const GARDEN_MESSAGE = "Así como este lirio, lo nuestro también florece con el tiempo. Gracias por llenar mi universo de luz. Te amo, Milyluli.";
 
 /* ================= FRASES =================
    No se modificó ninguna palabra.                      */
@@ -643,6 +787,7 @@ const interactiveStars = [];
       phase: rand(0, Math.PI * 2),
       speed: rand(1, 1.8),
       phrase: phrases[i],
+      idx: i,
       screenX: 0, screenY: 0, screenR: 0
     });
   }
@@ -866,6 +1011,10 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 /* ================= CLICK EN ESTRELLAS ================= */
+const viewedIndices = new Set();
+let pendingGarden = false;
+let gardenShown = false;
+
 function handleClick(clientX, clientY) {
   // convertimos coordenadas de pantalla (CSS px) a coordenadas internas del canvas,
   // ya que en móvil el canvas se renderiza a menor resolución y luego se estira
@@ -880,7 +1029,12 @@ function handleClick(clientX, clientY) {
       closest = s;
     }
   }
-  if (closest) { showPhrase(closest.phrase); return; }
+  if (closest) {
+    viewedIndices.add(closest.idx);
+    if (viewedIndices.size === phrases.length && !gardenShown) pendingGarden = true;
+    showPhrase(closest.phrase);
+    return;
+  }
 
   // el agujero negro siempre está en el centro exacto de la pantalla,
   // sin importar la rotación o el zoom
@@ -1066,7 +1220,31 @@ function showSecretMessage() {
 function hidePhrase() {
   phraseCard.classList.remove('show');
   overlay.classList.remove('show');
+  if (pendingGarden && !gardenShown) {
+    pendingGarden = false;
+    gardenShown = true;
+    setTimeout(showGarden, 500);
+  }
 }
+
+/* ================= JARDÍN SECRETO (al completar todas las estrellas) ================= */
+const gardenOverlay = document.getElementById('gardenOverlay');
+const gardenCard = document.getElementById('gardenCard');
+const gardenMessageEl = document.getElementById('gardenMessage');
+const closeGarden = document.getElementById('closeGarden');
+
+function showGarden() {
+  gardenMessageEl.textContent = GARDEN_MESSAGE;
+  gardenOverlay.classList.add('show');
+  gardenCard.classList.add('show');
+  playChime();
+}
+function hideGarden() {
+  gardenOverlay.classList.remove('show');
+  gardenCard.classList.remove('show');
+}
+closeGarden.addEventListener('click', hideGarden);
+gardenOverlay.addEventListener('click', hideGarden);
 closeCard.addEventListener('click', hidePhrase);
 overlay.addEventListener('click', hidePhrase);
 
