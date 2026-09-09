@@ -541,6 +541,12 @@ const SECRET_MESSAGE = "“Tú ves defectos donde yo veo detalles que te hacen �
 // Mensaje final que aparece cuando toque las 18 estrellas (jardín secreto) — cámbialo si quieres
 const GARDEN_MESSAGE = "Así como este lirio, lo nuestro también florece con el tiempo. Gracias por llenar mi universo de luz. Te amo, Milyluli.";
 
+// Modo de apagado gradual — true lo activa, false lo desactiva por completo (no pasa nada).
+// Con true, todo el sitio va perdiendo color lentamente (no solo oscureciéndose) durante
+// los minutos que definas, pero las estrellas y frases se pueden seguir tocando y leyendo.
+const ENDING_MODE = true;
+const ENDING_DURATION_MIN = 8; // minutos hasta llegar casi al apagado total
+
 /* ================= FRASES =================
    No se modificó ninguna palabra.                      */
 const phrases = [
@@ -835,6 +841,36 @@ function ringColor(t) {
 
 /* Estrellas fugaces ocasionales */
 const shootingStars = [];
+
+/* ================= MODO DE APAGADO GRADUAL ================= */
+let enterTimestamp = null; // se define al presionar "Entrar"
+let audioEnding = false;
+
+function getDecayProgress() {
+  if (!ENDING_MODE || enterTimestamp === null) return 0;
+  const elapsedMin = (performance.now() - enterTimestamp) / 60000;
+  return Math.min(1, elapsedMin / ENDING_DURATION_MIN);
+}
+
+function applyDecayVisuals(decay) {
+  if (decay <= 0) {
+    document.body.style.filter = '';
+    return;
+  }
+  document.body.style.filter =
+    `grayscale(${decay}) brightness(${1 - decay * 0.42}) contrast(${1 - decay * 0.1})`;
+}
+
+function updateHeartbeatSpeed(decay) {
+  const heart = document.querySelector('.beatHeart');
+  if (!heart) return;
+  if (decay >= 0.98) {
+    heart.style.animationPlayState = 'paused';
+  } else {
+    heart.style.animationPlayState = 'running';
+    heart.style.animationDuration = (1.15 + decay * 3.5) + 's';
+  }
+}
 function spawnShootingStar() {
   const angle = rand(Math.PI * 0.15, Math.PI * 0.35);
   const speed = rand(0.55, 0.85) * W;
@@ -882,6 +918,9 @@ function drawBlackHole() {
 function frame(now) {
   const dt = Math.min(50, now - t0);
   t0 = now;
+
+  const decay = getDecayProgress();
+  applyDecayVisuals(decay);
 
   // en vez de borrar todo, pintamos una capa semitransparente:
   // así lo que se mueve (rotación / zoom) deja una breve estela que se desvanece
@@ -974,7 +1013,7 @@ function frame(now) {
   drawBlackHole();
 
   /* Estrellas fugaces: aparecen ocasionalmente y se dibujan encima de todo */
-  if (Math.random() < (isMobile ? 0.0012 : 0.0018)) spawnShootingStar();
+  if (Math.random() < (isMobile ? 0.0012 : 0.0018) * (1 - decay)) spawnShootingStar();
 
   for (let i = shootingStars.length - 1; i >= 0; i--) {
     const s = shootingStars[i];
@@ -1074,6 +1113,13 @@ function updateLoveCounter() {
     `<b>${pad(hours)}:${pad(minutes)}:${pad(seconds)}</b>`;
 
   updateBirthdayCountdown(now);
+
+  const decay = getDecayProgress();
+  updateHeartbeatSpeed(decay);
+  if (ENDING_MODE && !audioEnding && decay >= 1) {
+    audioEnding = true;
+    fadeVolume(0, 6);
+  }
 }
 
 /* Próxima ocurrencia de una fecha (mes/día) a partir de "from" */
@@ -1145,6 +1191,7 @@ bgMusic.addEventListener('timeupdate', () => {
 });
 
 bgMusic.addEventListener('ended', () => {
+  if (audioEnding) return; // ya se apagó del todo, no vuelve a sonar
   trackIndex = (trackIndex + 1) % playlist.length;
   playTrack(trackIndex, true);
 });
@@ -1251,6 +1298,7 @@ overlay.addEventListener('click', hidePhrase);
 enterBtnEl.addEventListener('click', () => {
   initAudio(); // el audio solo puede iniciar tras un gesto del usuario (click)
   welcome.classList.add('hidden');
+  enterTimestamp = performance.now();
   setTimeout(() => {
     hint.style.display = 'block';
     loveCounterEl.classList.add('show');
